@@ -14,7 +14,7 @@ nltk.download('punkt_tab')
 df = pd.read_csv("empatheticdialogues/train.csv", on_bad_lines='skip')
 
 # Keep only relevant columns
-df = df[['utterance', 'context', 'prompt']]
+# df = df[['utterance', 'context', 'prompt']]
 df['utterance'] = df['utterance'].str.replace('_comma_', ' ')
 df['context'] = df['context'].str.replace('_comma_', ' ')
 df['prompt'] = df['prompt'].str.replace('_comma_', ' ')
@@ -35,12 +35,29 @@ def preprocess_text(text):
     # Join tokens back into a string
     return " ".join(tokens)
 
-# Apply preprocessing to each text column
-df['utterance'] = df['utterance'].apply(preprocess_text)
-df['context'] = df['context'].apply(preprocess_text)
-df['prompt'] = df['prompt'].apply(preprocess_text)
+# combine a whole conversation into one utterance
+# extract from conv_id, format is hit:0_conv:1, where last digit is the conversation number
 
-# Save the cleaned dataset (optional)
-df.to_csv("empatheticdialogues/cleaned_train.csv", index=False)
+new_df = pd.DataFrame(columns=['conv_id', 'prompt', 'utterance', 'context'])
+
+# iterate over the rows
+for index, row in df.iterrows():
+    conv_id = row['conv_id']
+    conv_num = re.search(r'\d+$', conv_id).group()
+    # check if the conversation number is the same as the previous row
+    if index > 0 and conv_num == new_df.iloc[-1]['conv_id']:
+        # combine the utterance with the previous row
+        new_df.iloc[-1]['utterance'] += " " + row['utterance']
+    else:
+        new_row = {'conv_id': conv_num, 'prompt': row['prompt'], 'utterance': row['utterance'], 'context': row['context']}
+        new_df = pd.concat([new_df, pd.DataFrame([new_row])], ignore_index=True)
+
+
+# Apply preprocessing to each text column
+new_df['utterance'] = new_df['utterance'].apply(preprocess_text)
+new_df['context'] = new_df['context'].apply(preprocess_text)
+new_df['prompt'] = new_df['prompt'].apply(preprocess_text)
+
+new_df.to_csv("empatheticdialogues/cleaned_train.csv", index=False)
 
 print("Preprocessing complete. Cleaned data saved!")
