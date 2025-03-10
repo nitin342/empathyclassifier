@@ -32,6 +32,8 @@ def preprocess_text(text):
     tokens = word_tokenize(text)
     # Remove stopwords
     tokens = [word for word in tokens if word not in stop_words]
+    # Apply stemming
+    tokens = [nltk.PorterStemmer().stem(word) for word in tokens]
     # Join tokens back into a string
     return " ".join(tokens)
 
@@ -55,7 +57,7 @@ for index, row in df.iterrows():
 
 # Apply preprocessing to each text column
 new_df['utterance'] = new_df['utterance'].apply(preprocess_text)
-new_df['context'] = new_df['context'].apply(preprocess_text)
+# new_df['context'] = new_df['context'].apply(preprocess_text)
 new_df['prompt'] = new_df['prompt'].apply(preprocess_text)
 
 new_df.to_csv("empatheticdialogues/cleaned_train.csv", index=False)
